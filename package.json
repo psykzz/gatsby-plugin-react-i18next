@@ -41,7 +41,7 @@
     "build:ts": "babel src --out-dir dist --extensions .ts,.tsx",
     "build:defs": "tsc --declaration --outDir dist --emitDeclarationOnly",
     "dev": "babel -w src --out-dir dist --extensions .ts,.tsx",
-    "prepare": "NODE_ENV=production npm run build:ts && npm run build:defs",
+    "prepare": "npm run build:ts && npm run build:defs",
     "format": "prettier --write 'src/**/*.{js,jsx,json,ts,tsx,md}'",
     "release": "release-it"
   },
