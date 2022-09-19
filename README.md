@@ -15,6 +15,10 @@ Easily translate your Gatsby website into multiple languages.
 
 When you build multilingual sites, Google recommends using different URLs for each language version of a page rather than using cookies or browser settings to adjust the content language on the page. [(read more)](https://support.google.com/webmasters/answer/182192?hl=en&ref_topic=2370587)
 
+## :boom: Breaking change since v2.0.0
+
+As of V2.0.0, this plugin only supports Gatsby 4.16.0+ and React 18+.
+
 ## :boom: Breaking change since v1.0.0
 
 As of v1.0.0, language JSON resources should be loaded by `gatsby-source-filesystem` plugin and then fetched by GraphQL query. It enables incremental build and hot-reload as language JSON files change.
@@ -31,6 +35,10 @@ Users who have loaded language JSON files using `path` option will be affected. 
 - [monei.com](https://monei.com/) - The digital payment gateway with best rates.
 - [moonmail.io](https://moonmail.io/) - OmniChannel Communication Platform used by more than 100,000 businesses worldwide.
 - [nyxo.app](https://nyxo.app) – Sleep tracking and coaching [(source code)](https://github.com/hello-nyxo/nyxo-website)
+
+### Tutorials
+
+- [Best internationalization for Gatsby](https://dev.to/adrai/best-internationalization-for-gatsby-mkf) by Adriano Raiano
 
 ## How to use
 
@@ -65,7 +73,9 @@ plugins: [
       languages: [`en`, `es`, `de`],
       defaultLanguage: `en`,
       // if you are using Helmet, you must include siteUrl, and make sure you add http:https
-      siteUrl: `https://example.com/`,
+      siteUrl: `https://example.com`,
+      // if you are using trailingSlash gatsby config include it here, as well (the default is 'always')
+      trailingSlash: 'always',
       // you can pass any i18next options
       i18nextOptions: {
         interpolation: {
@@ -100,9 +110,9 @@ For example,
 
 | language resource files                                              | language |
 | -------------------------------------------------------------------- | -------- |
-| [/locales/en/translation.json](/example/locales/en/translation.json) | English  |
-| [/locales/es/translation.json](/example/locales/es/translation.json) | Spanish  |
-| [/locales/de/translation.json](/example/locales/de/translation.json) | German   |
+| [/locales/en/index.json](https://github.com/microapps/gatsby-plugin-react-i18next/blob/master/example/locales/en/index.json) | English  |
+| [/locales/es/index.json](https://github.com/microapps/gatsby-plugin-react-i18next/blob/master/example/locales/es/index.json) | Spanish  |
+| [/locales/de/index.json](https://github.com/microapps/gatsby-plugin-react-i18next/blob/master/example/locales/de/index.json) | German   |
 
 You can use different namespaces to organize your translations. Use the following file structure:
 
@@ -130,6 +140,7 @@ Use react i18next [`useTranslation`](https://react.i18next.com/latest/usetransla
 Replace [Gatsby `Link`](https://www.gatsbyjs.org/docs/gatsby-link) component with the `Link` component exported from `gatsby-plugin-react-i18next`
 
 ```javascript
+import { graphql } from "gatsby"
 import React from 'react';
 import {Link, Trans, useTranslation} from 'gatsby-plugin-react-i18next';
 import Layout from '../components/layout';
@@ -374,6 +385,22 @@ In this example the plugin will automatically generate language pages for all la
 
 Omit `excludeLanguages` to get all the languages form the path. Make sure that you have pages for all the languages that you specify in the plugin, otherwise you might have broken links.
 
+You may also need to add a pages config for the 404 page, if it uses the same path pattern as your excluded pages. Note that the order of these rules is important. 
+
+```js
+pages: [
+  {
+    matchPath: '/:lang?/404',
+    getLanguageFromPath: false,
+  },
+  {
+    matchPath: '/:lang?/:uid',
+    getLanguageFromPath: true,
+    excludeLanguages: ['es']
+  }
+];
+```
+
 ## How to exclude a page that should not be translated
 
 You can limit the languages used to generate versions of a specific page, for exmaple to limit `/preview` page to only English version:
@@ -434,7 +461,7 @@ plugins: [
   {
     resolve: 'gatsby-plugin-sitemap',
     options: {
-      exclude: ['/**/404', '/**/404.html'],
+      excludes: ['/**/404', '/**/404.html'],
       query: `
           {
             site {
@@ -482,6 +509,52 @@ plugins: [
     }
   }
 ];
+```
+
+## How to use a fallback language with semantic keys (vs. message strings)
+
+By default this plugin is setup to fallback on the entire **message string**, that is used as language key.
+
+In order to use **semantic keys**, so the fallback message string is the default's language value (instead of the key), it is possible to do the following;
+
+In `/gatsby-config.js`, setup the plugin as usual, and add the key `options.i18nextOptions.fallbackLng` (i18next documentation, [configuration options](https://www.i18next.com/overview/configuration-options#languages-namespaces-resources), and [fallback options](https://www.i18next.com/principles/fallback#fallback));
+```
+{
+    resolve: `gatsby-plugin-react-i18next`,
+    options: {
+        localeJsonSourceName: `locale`,
+        languages: [`en`, `de`, `fr`],
+        defaultLanguage: `en`,
+        siteUrl: `https://example.com/`,
+        i18nextOptions: {
+            fallbackLng: 'en', // here we provide the fallback language to i18next
+            interpolation: {
+                escapeValue: false
+            },
+            keySeparator: false,
+            nsSeparator: false
+        }
+    }
+}
+```
+
+Then in a page query, we avoid to specify a `$language` variable used as filter, so i18next gets access to the available locales, used as fallback.
+
+```
+// /pages/index.js
+export const query = graphql`
+  query { // no $language variable defined, no filters on allLocale
+    locales: allLocale {
+      edges {
+        node {
+          ns
+          data
+          language
+        }
+      }
+    }
+  }
+`;
 ```
 
 ## How to extract translations from pages
@@ -587,6 +660,11 @@ module.exports = {
   ]
 };
 ```
+
+## Mentions
+
+- [Best internationalization for Gatsby](https://dev.to/adrai/best-internationalization-for-gatsby-mkf) by 
+Adriano Raiano
 
 ## Credits
 

@@ -8,7 +8,7 @@ export const onCreatePage = async (
   pluginOptions: PluginOptions
 ) => {
   //Exit if the page has already been processed.
-  if (typeof page.context.i18n === 'object') {
+  if (typeof page.context?.i18n === 'object') {
     return;
   }
 
@@ -25,6 +25,7 @@ export const onCreatePage = async (
     path?: string;
     originalPath?: string;
     routed?: boolean;
+    matchPath?: string;
     pageOptions?: PageOptions;
   };
   const generatePage = async ({
@@ -32,10 +33,12 @@ export const onCreatePage = async (
     path = page.path,
     originalPath = page.path,
     routed = false,
+    matchPath = page.matchPath,
     pageOptions
   }: GeneratePageParams): Promise<Page<PageContext>> => {
     return {
       ...page,
+      matchPath,
       path,
       context: {
         ...page.context,
@@ -95,6 +98,7 @@ export const onCreatePage = async (
     const localePage = await generatePage({
       language: lng,
       path: `${lng}${page.path}`,
+      matchPath: page.matchPath ? `/${lng}${page.matchPath}` : undefined,
       routed: true
     });
     const regexp = new RegExp('/404/?$');

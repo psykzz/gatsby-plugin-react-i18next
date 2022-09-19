@@ -24,13 +24,19 @@ const withI18next = (i18n: I18n, context: I18NextContext) => (children: any) => 
   );
 };
 
-const removePathPrefix = (pathname: string) => {
+const removePathPrefix = (pathname: string, stripTrailingSlash: boolean) => {
   const pathPrefix = withPrefix('/');
+  let result = pathname;
+
   if (pathname.startsWith(pathPrefix)) {
-    return pathname.replace(pathPrefix, '/');
+    result = pathname.replace(pathPrefix, '/');
   }
 
-  return pathname;
+  if (stripTrailingSlash && result.endsWith('/')) {
+    return result.slice(0, -1);
+  }
+
+  return result;
 };
 
 export const wrapPageElement = (
@@ -41,7 +47,8 @@ export const wrapPageElement = (
     generateDefaultLanguagePage = false,
     siteUrl,
     localeJsonNodeName = 'locales',
-    fallbackLanguage
+    fallbackLanguage,
+    trailingSlash
   }: PluginOptions
 ) => {
   if (!props) return;
@@ -69,8 +76,11 @@ export const wrapPageElement = (
 
       if (detected !== defaultLanguage) {
         const queryParams = search || '';
+        const stripTrailingSlash = trailingSlash === 'never';
         const newUrl = withPrefix(
-          `/${detected}${removePathPrefix(location.pathname)}${queryParams}${location.hash}`
+          `/${detected}${removePathPrefix(location.pathname, stripTrailingSlash)}${queryParams}${
+            location.hash
+          }`
         );
         // @ts-ignore
         window.___replace(newUrl);
@@ -89,7 +99,7 @@ export const wrapPageElement = (
       
       export const query = graphql\`
         query($language: String!) {
-          ${localeJsonNodeName}: allLocale(language: {eq: $language}}) {
+          ${localeJsonNodeName}: allLocale(language: {eq: $language}) {
             edges {
               node {
                 ns
@@ -114,11 +124,12 @@ export const wrapPageElement = (
   const fallbackNS = namespaces.filter((ns) => ns !== defaultNS);
 
   const resources: Resource = localeNodes.reduce<Resource>((res: Resource, {node}) => {
-    const parsedData: ResourceKey = JSON.parse(node.data);
+    const parsedData: ResourceKey =
+      typeof node.data === 'object' ? node.data : JSON.parse(node.data);
 
     if (!(node.language in res)) res[node.language] = {};
 
-    res[node.language][node.ns] = parsedData;
+    res[node.language][node.ns || defaultNS] = parsedData;
 
     return res;
   }, {});
@@ -133,6 +144,7 @@ export const wrapPageElement = (
     defaultNS,
     fallbackNS,
     react: {
+      ...i18nextOptions.react,
       useSuspense: false
     }
   });
